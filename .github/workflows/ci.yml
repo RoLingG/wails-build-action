@@ -1,0 +1,99 @@
+name: Build Action self-tests
+
+on:
+  push:
+    branches: [ "main", "v3", "dev", "*-*" ]
+  pull_request:
+    branches: [ "main", "v3", "dev", "*-*" ]
+  workflow_dispatch:
+
+jobs:
+  matrix-root-action:
+    name: Root action (./) on ${{ matrix.os }} for ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux/amd64
+          - os: windows-latest
+            platform: windows/amd64
+          - os: macos-latest
+            platform: darwin/universal
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Run root action locally
+        uses: ./
+        with:
+          build-name: wails
+          build-platform: ${{ matrix.platform }}
+          package: false
+          sign: false
+          nsis: false
+
+  wrapper-wails2:
+    name: Wails2 wrapper (./actions/wails2) on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux/amd64
+          - os: macos-latest
+            platform: darwin/universal
+          - os: windows-latest
+            platform: windows/amd64
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Run wails2 wrapper locally
+        uses: ./actions/wails2
+        with:
+          build-name: wails
+          build-platform: ${{ matrix.platform }}
+          package: false
+          sign: false
+          nsis: false
+
+  subactions-smoke:
+    name: Sub-actions smoke (workflow-local ./actions/*)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Linux discovery (workflow-local path)
+        id: linux
+        uses: ./actions/linux-discovery
+      - name: Compute build options (with distro)
+        id: opts
+        uses: ./actions/build-options
+        with:
+          build-obfuscate: 'true'
+          build-tags: 'release'
+          nsis: 'false'
+          distro: ${{ steps.linux.outputs.DISTRO }}
+      - name: Show computed options
+        run: echo "BUILD_OPTIONS='${{ steps.opts.outputs.BUILD_OPTIONS }}'"
+
+  deno-env-path-test:
+    name: Deno env-first path (root action on Ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure Deno via $GITHUB_ENV
+        run: |
+          echo "DENO_ENABLE=true" >> "$GITHUB_ENV"
+          echo "DENO_VERSION=v1.44.x" >> "$GITHUB_ENV"
+          echo "DENO_WORKDIR=frontend" >> "$GITHUB_ENV"
+          echo "DENO_BUILD=deno --version" >> "$GITHUB_ENV"
+      - name: Run root action (should set up Deno and run command)
+        uses: ./
+        with:
+          build-name: wails
+          build-platform: linux/amd64
+          build: false
+          package: false

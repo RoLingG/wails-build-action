@@ -1,0 +1,88 @@
+name: "Setup Go, Deno, Wails"
+description: "Sets up Go (optionally), Garble, Deno (optional), and installs Wails"
+inputs:
+  go-version:
+    required: false
+    default: "1.23"
+  build-cache:
+    required: false
+    default: "true"
+  build-obfuscate:
+    required: false
+    default: "false"
+  deno-build:
+    required: false
+    default: ""
+  deno-version:
+    required: false
+    default: "v1.20.x"
+  deno-working-directory:
+    required: false
+    default: "."
+  wails-version:
+    required: false
+    default: "latest"
+  wails-dev-build:
+    required: false
+    default: "false"
+runs:
+  using: "composite"
+  steps:
+    - name: Setup GoLang
+      uses: actions/setup-go@v5
+      if: inputs.wails-dev-build == 'false'
+      with:
+        check-latest: true
+        cache: ${{ inputs.build-cache }}
+        cache-dependency-path: 'go.sum'
+        go-version: ${{ inputs.go-version }}
+    - name: Install Garble
+      if: inputs.build-obfuscate == 'true'
+      run: go install mvdan.cc/garble@latest
+      shell: bash
+    - run: go version
+      shell: bash
+    - name: Resolve Deno configuration
+      id: deno_cfg
+      shell: bash
+      env:
+        INPUT_DENO_BUILD: ${{ inputs.deno-build }}
+        INPUT_DENO_VERSION: ${{ inputs.deno-version }}
+        INPUT_DENO_WORKDIR: ${{ inputs.deno-working-directory }}
+      run: |
+        set -euo pipefail
+        deno_enable="${DENO_ENABLE:-}"
+        deno_build="${DENO_BUILD:-}"
+        deno_version="${DENO_VERSION:-}"
+        deno_workdir="${DENO_WORKDIR:-}"
+        # Fallback to inputs if env not set
+        if [ -z "$deno_build" ]; then deno_build="$INPUT_DENO_BUILD"; fi
+        if [ -z "$deno_version" ]; then deno_version="$INPUT_DENO_VERSION"; fi
+        if [ -z "$deno_workdir" ]; then deno_workdir="$INPUT_DENO_WORKDIR"; fi
+        enabled=0
+        case "${deno_enable,,}" in
+          true|1|yes|on) enabled=1;;
+        esac
+        if [ -n "$deno_build" ]; then enabled=1; fi
+        echo "ENABLED=$enabled" >> "$GITHUB_OUTPUT"
+        echo "BUILD=$deno_build" >> "$GITHUB_OUTPUT"
+        echo "VERSION=$deno_version" >> "$GITHUB_OUTPUT"
+        echo "WORKDIR=${deno_workdir:-.}" >> "$GITHUB_OUTPUT"
+    - name: Setup Deno
+      uses: denoland/setup-deno@v2
+      if: steps.deno_cfg.outputs.ENABLED == '1'
+      with:
+        deno-version: ${{ steps.deno_cfg.outputs.VERSION }}
+    - name: Run Deno Command
+      if: steps.deno_cfg.outputs.BUILD != ''
+      shell: bash
+      working-directory: ${{ steps.deno_cfg.outputs.WORKDIR }}
+      run: ${{ steps.deno_cfg.outputs.BUILD }}
+    - name: Install Wails
+      if: inputs.wails-dev-build == 'false'
+      run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ inputs.wails-version }}
+      shell: bash
+    - name: Install macOS deps (gon)
+      if: runner.os == 'macOS'
+      run: brew install mitchellh/gon/gon
+      shell: bash

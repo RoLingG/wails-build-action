@@ -1,19 +1,16 @@
-name: "Build Action (Wails v2 pipeline)"
-description: "General build action repo; current root action runs the Wails v2 pipeline"
-branding:
-  icon: 'box'
-  color: 'purple'
+name: "Wails v2 (full pipeline)"
+description: "Runs the full Wails v2 build pipeline: discovery, options, setup (Go/Deno/Wails), build, sign, and package"
 inputs:
   build:
-    description: "Platform to build for"
+    description: "Whether to run the build"
     required: false
     default: "true"
   sign:
-    description: "Sign the build"
+    description: "Sign the build (macOS/Windows)"
     required: false
     default: "false"
   package:
-    description: "Uploads workflow & uploads tag builds to a release"
+    description: "Upload artifacts and release on tag"
     required: false
     default: "true"
   nsis:
@@ -21,14 +18,14 @@ inputs:
     required: false
     default: "false"
   build-name:
-    description: "The name of the binary file"
+    description: "The name of the binary/app bundle"
     required: true
   build-cache:
-    description: "Cache the build"
+    description: "Enable Go cache"
     required: false
     default: "true"
   build-platform:
-    description: "Platform to build for"
+    description: "Platform to build for (e.g., linux/amd64, windows/amd64, darwin/universal)"
     required: false
     default: "darwin/universal"
   build-tags:
@@ -36,7 +33,7 @@ inputs:
     required: false
     default: "false"
   build-obfuscate:
-    description: "Obfuscate the build"
+    description: "Obfuscate (garble) the build"
     required: false
     default: "false"
   wails-version:
@@ -44,71 +41,71 @@ inputs:
     required: false
     default: "latest"
   wails-build-webview2:
-    description: "Webview2 installer method [download,embed,browser,error]"
+    description: "WebView2 installer method [download,embed,browser,error]"
     required: false
     default: "download"
   go-version:
-    description: "Version of Go to use"
+    description: "Go version"
     required: false
     default: "1.23"
   node-version:
-    description: "Node js version"
+    description: "Node js version (unused by pipeline but kept for compatibility)"
     required: false
     default: "18.x"
   deno-build:
-    description: "This gets run into bash, use the full command"
+    description: "Deno command to run (optional, ENV-first)"
     required: false
     default: ""
   app-working-directory:
-    description: "This gets run into bash, use the full command"
+    description: "App working directory"
     required: false
     default: "."
   deno-working-directory:
-    description: "This gets run into bash, use the full command"
+    description: "Deno working directory"
     required: false
     default: "."
   deno-version:
-    description: "Deno version to use"
+    description: "Deno version"
     required: false
     default: "v1.20.x"
   sign-macos-app-id:
-    description: "MacOS Application Certificate id"
     required: false
     default: ''
+    description: ""
   sign-macos-apple-password:
-    description: "MacOS Apple password"
     required: false
     default: ''
+    description: ""
   sign-macos-app-cert:
-    description: "MacOS Application Certificate"
     required: false
     default: ''
+    description: ""
   sign-macos-app-cert-password:
-    description: "MacOS Application Certificate Password"
     required: false
     default: ''
+    description: ""
   sign-macos-installer-id:
-    description: "MacOS Installer Certificate id"
     required: false
     default: ''
+    description: ""
   sign-macos-installer-cert:
-    description: "MacOS Installer Certificate"
     required: false
     default: ''
+    description: ""
   sign-macos-installer-cert-password:
-    description: "MacOS Installer Certificate Password"
     required: false
     default: ''
+    description: ""
   sign-windows-cert:
-    description: "Windows Signing Certificate"
     required: false
     default: ''
+    description: ""
   sign-windows-cert-password:
-    description: "Windows Signing Certificate Password"
     required: false
     default: ''
+    description: ""
   wails-dev-build:
-    description: "Use provided wails"
+    description: "Use provided wails binary instead of installing"
     required: false
     default: "false"
 runs:

@@ -1,16 +1,16 @@
 20/02/2025 - Wails Version 2.10.0 is problematic, please use `wails-version: "v2.9.0"` & report the bug if you get issues, tyvm <3
 
-07/02/2025 - Please use `dAppServer/wails-build-action@main` AND star the repo to get updated on V3, the readme refers to a future version
+07/02/2025 - Repo renamed: please use `snider/build-action@v3` and consider starring the repo to get updates; the readme refers to v3.
 
-# dAppServer/wails-build-action@v2
-GitHub action to build Wails.io: the action will install GoLang and NodeJS and run a build.
+# snider/build-action@v3
+GitHub action to build Wails.io: the action will install GoLang, optionally Deno, and run a build. It now uses a modern, modular structure split into reusable sub-actions and an optional reusable workflow.
 This will be used on a [Wails.io](https://wails.io) v2 project.
 
 By default, the action will build and upload the results to Git Hub; on a tagged build, it will also upload to the release.
 
 # Default build
 ```yaml
-- uses: dAppServer/wails-build-action@v3
+- uses: snider/build-action@v3
   with:
     build-name: wailsApp
     build-platform: linux/amd64
@@ -19,7 +19,7 @@ By default, the action will build and upload the results to Git Hub; on a tagged
 ## Build with No uploading
 
 ```yaml
-- uses: dAppServer/wails-build-action@v3
+- uses: snider/build-action@v3
   with:
     build-name: wailsApp
     build-platform: linux/amd64
@@ -52,7 +52,7 @@ By default, the action will build and upload the results to Git Hub; on a tagged
 | `sign-macos-installer-cert`          | ''                   | MacOS Installer Certificate                        |
 | `sign-macos-installer-cert-password` | ''                   | MacOS Installer Certificate Password               |
 | `sign-windows-cert`                  | ''                   | Windows Signing Certificate                        |
-| `sign-windows-cert-passowrd`         | ''                   | Windows Signing Certificate Password               |
+| `sign-windows-cert-password`         | ''                   | Windows Signing Certificate Password               |
 
 
 
@@ -78,7 +78,7 @@ jobs:
       - uses: actions/checkout@v2
         with:
           submodules: recursive
-      - uses: dAppServer/wails-build-action@v3
+      - uses: snider/build-action@v3
         with:
           build-name: ${{ matrix.build.name }}
           build-platform: ${{ matrix.build.platform }}
@@ -90,7 +90,7 @@ jobs:
 You need to make two gon configuration files, this is because we need to sign and notarize the .app before making an installer with it.
 
 ```yaml
-  - uses: dAppServer/wails-build-action@v3
+  - uses: snider/wails-build-action@v3
     with:
       build-name: wailsApp
       sign: true
@@ -157,4 +157,58 @@ You need to make two gon configuration files, this is because we need to sign an
   <true/>
 </dict>
 </plist>
+```
+
+
+## Configure Deno via environment variables (optional)
+
+Deno is not required. If you want to run a Deno build/asset step before Wails, you can configure it entirely via env vars — no `deno-*` inputs are needed.
+
+Precedence used by the action (inside `actions/setup`):
+- Environment variables > action inputs > defaults.
+- If nothing is provided, Deno is skipped.
+
+Supported variables:
+- `DENO_ENABLE` — `true`/`1`/`yes`/`on` explicitly enables Deno even without a build command.
+- `DENO_BUILD` — full command to run (e.g., `deno task build`, `deno run -A build.ts`).
+- `DENO_VERSION` — e.g., `v1.44.x`.
+- `DENO_WORKDIR` — working directory for the Deno command (default `.`).
+- Pass-throughs (used by Deno if present): `DENO_AUTH_TOKEN`, `DENO_DIR`, `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY`, etc.
+
+Example (job-level env):
+```yaml
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      DENO_ENABLE: 'true'
+      DENO_VERSION: 'v1.44.x'
+      DENO_WORKDIR: 'frontend'
+      DENO_BUILD: 'deno task build'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: snider/build-action@v3
+        with:
+          build-name: wailsApp
+          build-platform: linux/amd64
+```
+
+Using `$GITHUB_ENV` in a prior step:
+```yaml
+- name: Configure Deno via $GITHUB_ENV
+  run: |
+    echo "DENO_ENABLE=true" >> "$GITHUB_ENV"
+    echo "DENO_VERSION=v1.44.x" >> "$GITHUB_ENV"
+    echo "DENO_WORKDIR=frontend" >> "$GITHUB_ENV"
+    echo "DENO_BUILD=deno task build" >> "$GITHUB_ENV"
+- uses: snider/build-action@v3
+  with:
+    build-name: wailsApp
+    build-platform: linux/amd64
+```
+
+Secrets example (private modules):
+```yaml
+env:
+  DENO_AUTH_TOKEN: ${{ secrets.DENO_AUTH_TOKEN }}
 ```
