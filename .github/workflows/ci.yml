@@ -204,6 +204,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run root action with AUTO_STACK in tdd/wails2-root
+        id: root
         uses: ./
         with:
           build-name: wails
@@ -213,11 +214,18 @@ jobs:
           package: false
           sign: false
           nsis: false
+      - name: Assert orchestrator selected wails2
+        shell: bash
+        run: |
+          set -euo pipefail
+          sel='${{ steps.root.outputs.SELECTED_STACK }}'
+          echo "[DEBUG_LOG] SELECTED_STACK=$sel"
+          test "$sel" = "wails2" || { echo "Expected SELECTED_STACK=wails2, got '$sel'"; exit 1; }
 
   matrix-root-action:
     name: Root action (./) on ${{ matrix.os }} for ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
-    needs: [discovery-tests, discovery-fixture-tests, auto-stack-smoke, options-tests, setup-go-tests, setup-npm-tests, setup-deno-tests, setup-conan-tests, signing-diagnostics, package-tests]
+    needs: [discovery-tests, discovery-fixture-tests, auto-stack-smoke, options-tests, setup-go-tests, setup-npm-tests, setup-deno-tests, setup-conan-tests, signing-diagnostics, package-tests, wails-env-mapping-wrapper, readme-snippets]
     strategy:
       fail-fast: false
       matrix:
@@ -394,6 +402,85 @@ jobs:
         with:
           build-name: wails
           build-platform: linux/amd64
-          app-working-directory: build/wails2
+          app-working-directory: tdd/wails2-root
           package: false
           sign: false
+
+  wails-env-mapping-wrapper:
+    name: WAILS_* env mapping (wrapper outputs)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure WAILS_* via $GITHUB_ENV (wrapper)
+        run: |
+          echo "WAILS_OBFUSCATE=true" >> "$GITHUB_ENV"
+          echo "WAILS_NSIS=false" >> "$GITHUB_ENV"
+          echo "WAILS_BUILD_TAGS=release custom" >> "$GITHUB_ENV"
+          echo "WAILS_VERSION=latest" >> "$GITHUB_ENV"
+          echo "WAILS_GO_VERSION=1.23" >> "$GITHUB_ENV"
+          echo "WAILS_NODE_VERSION=18.x" >> "$GITHUB_ENV"
+          echo "WAILS_DENO_VERSION=v1.20.x" >> "$GITHUB_ENV"
+          echo "WAILS_WEBVIEW2=download" >> "$GITHUB_ENV"
+      - name: Run wails2 wrapper (capture outputs)
+        id: wrap
+        uses: ./actions/build/wails2
+        with:
+          build-name: wails
+          build-platform: linux/amd64
+          app-working-directory: tdd/wails2-root
+          package: false
+          sign: false
+          nsis: false
+      - name: Assert wrapper resolved envs
+        shell: bash
+        run: |
+          set -euo pipefail
+          tags='${{ steps.wrap.outputs.BUILD_TAGS }}'
+          obf='${{ steps.wrap.outputs.OBFUSCATE }}'
+          nsis='${{ steps.wrap.outputs.NSIS }}'
+          echo "[DEBUG_LOG] WRAP_BUILD_TAGS=$tags OBFUSCATE=$obf NSIS=$nsis"
+          grep -q "release" <<< "$tags"
+          grep -q "custom" <<< "$tags"
+          test "$obf" = "true"
+          test "$nsis" = "false"
+
+  readme-snippets:
+    name: README snippets validation (non-signing, non-release)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Discovery example
+        id: disc
+        uses: ./actions/discovery
+        with:
+          working-directory: tdd/wails2-root
+      - name: Options example
+        id: opts
+        uses: ./actions/options
+        with:
+          build-obfuscate: 'true'
+          build-tags: 'release'
+          nsis: 'false'
+          distro: ${{ steps.disc.outputs.DISTRO }}
+      - name: Deno ENV-first example
+        env:
+          DENO_ENABLE: 'true'
+          DENO_VERSION: 'v1.44.x'
+          DENO_WORKDIR: '.'
+          DENO_BUILD: 'deno --version'
+        uses: ./actions/setup/deno
+      - name: Prepare dummy artifact
+        run: |
+          mkdir -p tmp/bin
+          echo "snippet" > tmp/bin/snippet.txt
+      - name: Package example
+        uses: ./actions/package
+        with:
+          package: 'true'
+          build-name: 'ci-snippet'
+          os: 'Linux'
+          arch: 'amd64'
+          short-sha: '${{ github.sha }}'
+          include-meta: 'true'
+      - name: Note
+        run: echo "[DEBUG_LOG] README snippets validated"
