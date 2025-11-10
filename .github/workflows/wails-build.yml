@@ -89,8 +89,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - name: Wails build action
-        uses: ./. 
+      - name: Wails build action (wrapper)
+        uses: ./actions/build/wails2
         with:
           build: ${{ inputs.build }}
           sign: ${{ inputs.sign }}

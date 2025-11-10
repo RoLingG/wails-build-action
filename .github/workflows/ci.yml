@@ -160,10 +160,55 @@ jobs:
         run: |
           if command -v conan >/dev/null 2>&1; then conan --version; else echo "Conan not found in PATH (ok for placeholder)"; fi
 
+  discovery-fixture-tests:
+    name: Discovery fixture tests (project markers and stack suggestion)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { dir: 'tdd/wails2-root', expect: 'wails2', expect_root_pkg: '0', expect_frontend_pkg: '1', expect_go_mod: '1', expect_main_go: '1', expect_cmake: '0' }
+          - { dir: 'tdd/cpp-root', expect: 'cpp', expect_root_pkg: '0', expect_frontend_pkg: '0', expect_go_mod: '0', expect_main_go: '0', expect_cmake: '1' }
+          - { dir: 'tdd/node-only', expect: 'unknown', expect_root_pkg: '1', expect_frontend_pkg: '0', expect_go_mod: '0', expect_main_go: '0', expect_cmake: '0' }
+          - { dir: 'tdd/docs', expect: 'unknown', expect_root_pkg: '0', expect_frontend_pkg: '0', expect_go_mod: '0', expect_main_go: '0', expect_cmake: '0' }
+    steps:
+      - uses: actions/checkout@v4
+      - id: disc
+        uses: ./actions/discovery
+        with:
+          working-directory: ${{ matrix.dir }}
+      - name: Assert markers and suggestion
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "[DEBUG_LOG] Tested dir=${{ matrix.dir }}"
+          test "${{ steps.disc.outputs.PRIMARY_STACK_SUGGESTION }}" = "${{ matrix.expect }}"
+          test "${{ steps.disc.outputs.HAS_ROOT_PACKAGE_JSON }}" = "${{ matrix.expect_root_pkg }}"
+          test "${{ steps.disc.outputs.HAS_FRONTEND_PACKAGE_JSON }}" = "${{ matrix.expect_frontend_pkg }}"
+          test "${{ steps.disc.outputs.HAS_ROOT_GO_MOD }}" = "${{ matrix.expect_go_mod }}"
+          test "${{ steps.disc.outputs.HAS_ROOT_MAIN_GO }}" = "${{ matrix.expect_main_go }}"
+          test "${{ steps.disc.outputs.HAS_ROOT_CMAKELISTS }}" = "${{ matrix.expect_cmake }}"
+
+  auto-stack-smoke:
+    name: Auto stack routing smoke (root action on Wails2-like repo)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run root action with AUTO_STACK in tdd/wails2-root
+        uses: ./
+        with:
+          build-name: wails
+          build-platform: linux/amd64
+          app-working-directory: tdd/wails2-root
+          build: false
+          package: false
+          sign: false
+          nsis: false
+
   matrix-root-action:
     name: Root action (./) on ${{ matrix.os }} for ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
-    needs: [discovery-tests, options-tests, setup-go-tests, setup-npm-tests, setup-deno-tests, setup-conan-tests, signing-diagnostics, package-tests]
+    needs: [discovery-tests, discovery-fixture-tests, auto-stack-smoke, options-tests, setup-go-tests, setup-npm-tests, setup-deno-tests, setup-conan-tests, signing-diagnostics, package-tests]
     strategy:
       fail-fast: false
       matrix:
@@ -178,20 +223,25 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+      - name: Prepare dummy artifact
+        shell: bash
+        run: |
+          mkdir -p tmp/bin
+          echo "dummy" > tmp/bin/dummy.txt
       - name: Run root action locally
         uses: ./
         with:
           build-name: wails
           build-platform: ${{ matrix.platform }}
-          app-working-directory: build/wails2
+          app-working-directory: tdd/wails2-root
+          build: false
           package: true
           sign: false
-          nsis: false
 
   wrapper-wails2:
-    name: Wails2 wrapper (./actions/wails2) on ${{ matrix.os }}
+    name: Wails2 wrapper (./actions/build/wails2) on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    needs: [discovery-tests, options-tests, setup-go-tests, setup-npm-tests, setup-deno-tests, setup-conan-tests, signing-diagnostics, package-tests]
+    needs: [discovery-tests, discovery-fixture-tests, auto-stack-smoke, options-tests, setup-go-tests, setup-npm-tests, setup-deno-tests, setup-conan-tests, signing-diagnostics, package-tests]
     strategy:
       fail-fast: false
       matrix:
@@ -207,11 +257,11 @@ jobs:
         with:
           submodules: recursive
       - name: Run wails2 wrapper locally
-        uses: ./actions/wails2
+        uses: ./actions/build/wails2
         with:
           build-name: wails
           build-platform: ${{ matrix.platform }}
-          app-working-directory: build/wails2
+          app-working-directory: tdd/wails2-root
           package: true
           sign: false
           nsis: false
@@ -309,3 +359,27 @@ jobs:
           build-platform: linux/amd64
           build: false
           package: false
+
+  wails-env-mapping:
+    name: WAILS_* env mapping (root action)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure WAILS_* via $GITHUB_ENV
+        run: |
+          echo "WAILS_OBFUSCATE=true" >> "$GITHUB_ENV"
+          echo "WAILS_NSIS=false" >> "$GITHUB_ENV"
+          echo "WAILS_BUILD_TAGS=release custom" >> "$GITHUB_ENV"
+          echo "WAILS_VERSION=latest" >> "$GITHUB_ENV"
+          echo "WAILS_GO_VERSION=1.23" >> "$GITHUB_ENV"
+          echo "WAILS_NODE_VERSION=18.x" >> "$GITHUB_ENV"
+          echo "WAILS_DENO_VERSION=v1.20.x" >> "$GITHUB_ENV"
+          echo "WAILS_WEBVIEW2=download" >> "$GITHUB_ENV"
+      - name: Run root action (uses ENV mapping)
+        uses: ./
+        with:
+          build-name: wails
+          build-platform: linux/amd64
+          app-working-directory: build/wails2
+          package: false
+          sign: false

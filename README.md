@@ -121,7 +121,7 @@ This repo is modular. You can call the root action, the Wails v2 wrapper, or any
 ## Stacks
 
 - Available:
-  - wails2 — `uses: snider/build-action/actions/wails2@v3` (or just call the root action)
+  - wails2 — `uses: snider/build-action/actions/build/wails2@v3` (or just call the root action)
 - Coming soon:
   - wails3 — once upstream stabilizes
   - cpp — via `setup/conan` and dedicated build/sign/pack steps
@@ -129,6 +129,23 @@ This repo is modular. You can call the root action, the Wails v2 wrapper, or any
 ## Setup orchestrator notes
 
 The `actions/setup` sub-action is a thin orchestrator that runs Go → npm → Deno (optional) → Conan (optional). It keeps Deno independent from Wails. Configure Deno via environment variables (ENV-first), or via inputs as a fallback. See the Deno section below and `actions/setup/deno/README.md` for details.
+
+## Orchestrator controls (root action)
+
+The root action can auto-detect your stack and auto-enable setup steps. This makes `snider/build-action@v3` “just work” for common layouts, while still allowing full control.
+
+- Inputs (root action):
+  - `AUTO_STACK` (default `true`) — auto-select a stack based on `actions/discovery` outputs.
+  - `AUTO_SETUP` (default `true`) — allow sub-setup enabling based on env toggles.
+  - `STACK` (optional) — force a stack (e.g., `wails2`). When set, it takes precedence over auto.
+- Environment toggles (read when `AUTO_SETUP == true`):
+  - `ENABLE_GO`, `ENABLE_NPM`, `ENABLE_DENO`, `ENABLE_CONAN` — `true`/`1`/`yes`/`on` to explicitly enable those setups; otherwise defaults are used.
+- Precedence and routing:
+  - If `STACK` is set, the root action routes to that stack wrapper directly.
+  - Else if `AUTO_STACK` is enabled, the root action uses `PRIMARY_STACK_SUGGESTION` from discovery and routes accordingly (currently `wails2`).
+  - You can fully opt out by setting `AUTO_STACK: 'false'` and `AUTO_SETUP: 'false'` and calling sub-actions directly in your workflow.
+- Debug logs:
+  - Look for `[DEBUG_LOG] Auto stack=...` and `[DEBUG_LOG] npm-install resolved=...` in the logs to see decisions made.
 
 ## Smarter artifact naming (package)
 

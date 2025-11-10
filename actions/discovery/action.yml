@@ -34,8 +34,18 @@ runs:
       run: |
         set -euo pipefail
         OS="${{ runner.os }}"
-        ARCH="$(uname -m)"
+        M="$(uname -m)"
+        case "$M" in
+          x86_64|amd64) ARCH="amd64";;
+          aarch64|arm64) ARCH="arm64";;
+          armv7l) ARCH="armv7";;
+          *) ARCH="$M";;
+        esac
         REF="${{ github.ref }}"
+        BRANCH=""
+        if [[ "$REF" == refs/heads/* ]]; then
+          BRANCH="${REF#refs/heads/}"
+        fi
         SHA="${{ github.sha }}"
         SHORT_SHA="${SHA::7}"
         REPO="${{ github.repository }}"
@@ -49,6 +59,7 @@ runs:
         echo "OS=$OS" >> "$GITHUB_OUTPUT"
         echo "ARCH=$ARCH" >> "$GITHUB_OUTPUT"
         echo "REF=$REF" >> "$GITHUB_OUTPUT"
+        echo "BRANCH=$BRANCH" >> "$GITHUB_OUTPUT"
         echo "SHA=$SHA" >> "$GITHUB_OUTPUT"
         echo "SHORT_SHA=$SHORT_SHA" >> "$GITHUB_OUTPUT"
         echo "REPO=$REPO" >> "$GITHUB_OUTPUT"
@@ -66,6 +77,8 @@ runs:
         elseif ($archEnv -eq "ARM64") { $ARCH = "arm64" }
         else { $ARCH = $archEnv }
         $REF = "${{ github.ref }}"
+        $BRANCH = ""
+        if ($REF.StartsWith("refs/heads/")) { $BRANCH = $REF.Substring(11) }
         $SHA = "${{ github.sha }}"
         $SHORT_SHA = $SHA.Substring(0,7)
         $REPO = "${{ github.repository }}"
@@ -79,6 +92,7 @@ runs:
         "OS=$OS" >> $Env:GITHUB_OUTPUT
         "ARCH=$ARCH" >> $Env:GITHUB_OUTPUT
         "REF=$REF" >> $Env:GITHUB_OUTPUT
+        "BRANCH=$BRANCH" >> $Env:GITHUB_OUTPUT
         "SHA=$SHA" >> $Env:GITHUB_OUTPUT
         "SHORT_SHA=$SHORT_SHA" >> $Env:GITHUB_OUTPUT
         "REPO=$REPO" >> $Env:GITHUB_OUTPUT
@@ -194,6 +208,9 @@ outputs:
   REF:
     description: "The full Git ref"
     value: ${{ steps.meta_bash.outputs.REF || steps.meta_pwsh.outputs.REF }}
+  BRANCH:
+    description: "Branch name when on branch refs; empty on tags"
+    value: ${{ steps.meta_bash.outputs.BRANCH || steps.meta_pwsh.outputs.BRANCH }}
   TAG:
     description: "Tag name when running on a tag ref; empty otherwise"
     value: ${{ steps.meta_bash.outputs.TAG || steps.meta_pwsh.outputs.TAG }}

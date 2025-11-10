@@ -89,8 +89,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - name: Wails v2 build (root action)
-        uses: ./.
+      - name: Wails v2 build (wrapper)
+        uses: ./actions/build/wails2
         with:
           build: ${{ inputs.build }}
           sign: ${{ inputs.sign }}
@@ -104,7 +104,6 @@ jobs:
           wails-version: ${{ inputs.wails-version }}
           wails-build-webview2: ${{ inputs.wails-build-webview2 }}
           go-version: ${{ inputs.go-version }}
-          node-version: ${{ inputs.node-version }}
           deno-build: ${{ inputs.deno-build }}
           app-working-directory: build/wails2
           deno-working-directory: ${{ inputs.deno-working-directory }}

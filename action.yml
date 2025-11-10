@@ -1,116 +1,45 @@
-name: "Build Action (Wails v2 pipeline)"
-description: "General build action repo; current root action runs the Wails v2 pipeline"
+name: "Build Action (orchestrated)"
+description: "General build action repo; root is minimal and delegates to directory orchestrator based on discovery/ENV"
 branding:
   icon: 'box'
   color: 'purple'
 inputs:
   build:
-    description: "Platform to build for"
+    description: "Whether to run the build"
     required: false
     default: "true"
   sign:
-    description: "Sign the build"
+    description: "Sign the build (delegated to stack’s signing flow)"
     required: false
     default: "false"
   package:
-    description: "Uploads workflow & uploads tag builds to a release"
+    description: "Upload artifacts and publish release on tags"
     required: false
     default: "true"
-  nsis:
-    description: "Build a Windows Installer"
-    required: false
-    default: "false"
   build-name:
-    description: "The name of the binary file"
+    description: "The name of the binary/app bundle"
     required: true
-  build-cache:
-    description: "Cache the build"
-    required: false
-    default: "true"
   build-platform:
-    description: "Platform to build for"
+    description: "Platform to build for (e.g., linux/amd64, windows/amd64, darwin/universal)"
     required: false
     default: "darwin/universal"
-  build-tags:
-    description: "Build tags to pass to Go compiler. Must be quoted. Space or comma (but not both) separated"
+  app-working-directory:
+    description: "Root of the app being built"
     required: false
-    default: "false"
-  build-obfuscate:
-    description: "Obfuscate the build"
+    default: "."
+  # Orchestrator controls (stack-agnostic)
+  AUTO_STACK:
+    description: "Allow root action to auto-select a stack based on discovery"
     required: false
-    default: "false"
-  wails-version:
-    description: "Wails version to use"
+    default: "true"
+  AUTO_SETUP:
+    description: "Allow orchestrators to auto-enable setup tools based on env toggles"
     required: false
-    default: "latest"
-  wails-build-webview2:
-    description: "Webview2 installer method [download,embed,browser,error]"
-    required: false
-    default: "download"
-  go-version:
-    description: "Version of Go to use"
-    required: false
-    default: "1.23"
-  node-version:
-    description: "Node js version"
-    required: false
-    default: "18.x"
-  deno-build:
-    description: "This gets run into bash, use the full command"
+    default: "true"
+  STACK:
+    description: "Explicit stack override (e.g., wails2)"
     required: false
     default: ""
-  app-working-directory:
-    description: "This gets run into bash, use the full command"
-    required: false
-    default: "."
-  deno-working-directory:
-    description: "This gets run into bash, use the full command"
-    required: false
-    default: "."
-  deno-version:
-    description: "Deno version to use"
-    required: false
-    default: "v1.20.x"
-  sign-macos-app-id:
-    description: "MacOS Application Certificate id"
-    required: false
-    default: ''
-  sign-macos-apple-password:
-    description: "MacOS Apple password"
-    required: false
-    default: ''
-  sign-macos-app-cert:
-    description: "MacOS Application Certificate"
-    required: false
-    default: ''
-  sign-macos-app-cert-password:
-    description: "MacOS Application Certificate Password"
-    required: false
-    default: ''
-  sign-macos-installer-id:
-    description: "MacOS Installer Certificate id"
-    required: false
-    default: ''
-  sign-macos-installer-cert:
-    description: "MacOS Installer Certificate"
-    required: false
-    default: ''
-  sign-macos-installer-cert-password:
-    description: "MacOS Installer Certificate Password"
-    required: false
-    default: ''
-  sign-windows-cert:
-    description: "Windows Signing Certificate"
-    required: false
-    default: ''
-  sign-windows-cert-password:
-    description: "Windows Signing Certificate Password"
-    required: false
-    default: ''
-  wails-dev-build:
-    description: "Use provided wails"
-    required: false
-    default: "false"
 runs:
   using: "composite"
   steps:
@@ -120,55 +49,20 @@ runs:
       with:
         working-directory: ${{ inputs.app-working-directory }}
 
-    - name: Compute Build Options
-      id: build_options
-      uses: actions/options
-      with:
-        build-obfuscate: ${{ inputs.build-obfuscate }}
-        build-tags: ${{ inputs.build-tags }}
-        nsis: ${{ inputs.nsis }}
-        distro: ${{ steps.discovery.outputs.DISTRO }}
-
-    - name: Setup toolchains (Go/Node/Deno/Wails)
-      uses: actions/setup
-      with:
-        go-version: ${{ inputs.go-version }}
-        build-cache: ${{ inputs.build-cache }}
-        build-obfuscate: ${{ inputs.build-obfuscate }}
-        wails-version: ${{ inputs.wails-version }}
-        wails-dev-build: ${{ inputs.wails-dev-build }}
-        node-version: ${{ inputs.node-version }}
-        npm-working-directory: ${{ inputs.app-working-directory }}
-        npm-install: 'true'
-        deno-build: ${{ inputs.deno-build }}
-        deno-version: ${{ inputs.deno-version }}
-        deno-working-directory: ${{ inputs.deno-working-directory }}
-
-    - name: Build Wails app
-      uses: actions/build/wails2/build
+    - name: Delegate to directory orchestrator
+      uses: actions/action.yml
       with:
         build: ${{ inputs.build }}
-        app-working-directory: ${{ inputs.app-working-directory }}
-        build-platform: ${{ inputs.build-platform }}
-        build-name: ${{ inputs.build-name }}
-        wails-build-webview2: ${{ inputs.wails-build-webview2 }}
-        build-options: ${{ steps.build_options.outputs.BUILD_OPTIONS }}
-
-    - name: Sign artifacts (OS-conditional)
-      uses: actions/sign
-      with:
         sign: ${{ inputs.sign }}
-        app-working-directory: ${{ inputs.app-working-directory }}
+        package: ${{ inputs.package }}
         build-name: ${{ inputs.build-name }}
-        sign-macos-apple-password: ${{ inputs.sign-macos-apple-password }}
-        sign-macos-app-id: ${{ inputs.sign-macos-app-id }}
-        sign-macos-app-cert: ${{ inputs.sign-macos-app-cert }}
-        sign-macos-app-cert-password: ${{ inputs.sign-macos-app-cert-password }}
-        sign-macos-installer-id: ${{ inputs.sign-macos-installer-id }}
-        sign-macos-installer-cert: ${{ inputs.sign-macos-installer-cert }}
-        sign-macos-installer-cert-password: ${{ inputs.sign-macos-installer-cert-password }}
-        sign-windows-cert: ${{ inputs.sign-windows-cert }}
-        sign-windows-cert-password: ${{ inputs.sign-windows-cert-password }}
+        build-platform: ${{ inputs.build-platform }}
+        app-working-directory: ${{ inputs.app-working-directory }}
+        AUTO_STACK: ${{ inputs.AUTO_STACK }}
+        AUTO_SETUP: ${{ inputs.AUTO_SETUP }}
+        STACK: ${{ inputs.STACK }}
+        # Pass suggestion from discovery so orchestrator can skip re-scanning if it wants
+        PRIMARY_STACK_SUGGESTION: ${{ steps.discovery.outputs.PRIMARY_STACK_SUGGESTION }}
 
     - name: Package & release
       uses: actions/package

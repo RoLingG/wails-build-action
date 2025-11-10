@@ -9,7 +9,7 @@ Purpose
 Usage (recommended)
 ```yaml
 - name: Build Wails v2
-  uses: snider/build-action/actions/wails2@v3
+  uses: snider/build-action/actions/build/wails2@v3
   with:
     build-name: wailsApp
     build-platform: linux/amd64 # or windows/amd64, darwin/universal
