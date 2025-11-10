@@ -80,3 +80,7 @@ runs:
         is-tag: ${{ steps.discovery.outputs.IS_TAG }}
         short-sha: ${{ steps.discovery.outputs.SHORT_SHA }}
         ref: ${{ steps.discovery.outputs.REF }}
+outputs:
+  SELECTED_STACK:
+    description: "Stack selected by the orchestrator (via directory orchestrator)"
+    value: ${{ steps.dir_orch.outputs.SELECTED_STACK }}
