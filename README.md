@@ -1,11 +1,18 @@
 # snider/build-action@v3
 
 [![CI](https://github.com/snider/wails-build-action/actions/workflows/ci.yml/badge.svg)](https://github.com/snider/wails-build-action/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-EUPL-green.svg)](LICENSE)
 
-General build action (multi-stack). Currently ships the Wails v2 pipeline. The action installs required toolchains (Go, npm, optional Deno), builds, and can optionally sign and package artifacts. It uses a modern, modular structure split into reusable sub-actions and an optional reusable workflow.
 
-By default, the action will build and upload the results to Git Hub; on a tagged build, it will also upload to the release.
+> I help on lots of open source projects, im tired of doing the same thing over and over again.\
+> so, I'm going to put them all together in one place.\
+> Hopefully it will help you too.
+
+General build action (multi-stack). 
+
+By default, the root action will best guess the builds you might want to run and delegate to the appropriate sub-action. You can also explicitly select a stack and enable/disable setup steps.
+
+you should write out an action that cherry-picks the parts you need; the auto-detected method works for me, based on the file structures in the tdd/* folders
 
 # Default build
 ```yaml
