@@ -67,12 +67,12 @@ jobs:
           set -euo pipefail
           BO='${{ steps.opts.outputs.BUILD_OPTIONS }}'
           echo "BUILD_OPTIONS=$BO"
-          if [ "${{ matrix.obf }}" = "true" ] && ! grep -q "-obfuscated" <<< "$BO"; then echo "missing -obfuscated"; exit 1; fi
-          if [ "${{ matrix.nsis }}" = "true" ] && ! grep -q "-nsis" <<< "$BO"; then echo "missing -nsis"; exit 1; fi
-          if [ "${{ matrix.expect_webkit }}" = "true" ] && ! grep -q "webkit2_41" <<< "$BO"; then echo "missing webkit2_41"; exit 1; fi
-          if [ "${{ matrix.disable_webkit || 'false' }}" = "true" ] && grep -q "webkit2_41" <<< "$BO"; then echo "webkit2_41 should be disabled"; exit 1; fi
+          if [ "${{ matrix.obf }}" = "true" ] && ! echo "$BO" | grep -q -- "-obfuscated"; then echo "missing -obfuscated"; exit 1; fi
+          if [ "${{ matrix.nsis }}" = "true" ] && ! echo "$BO" | grep -q -- "-nsis"; then echo "missing -nsis"; exit 1; fi
+          if [ "${{ matrix.expect_webkit }}" = "true" ] && ! echo "$BO" | grep -q -- "webkit2_41"; then echo "missing webkit2_41"; exit 1; fi
+          if [ "${{ matrix.disable_webkit || 'false' }}" = "true" ] && echo "$BO" | grep -q -- "webkit2_41"; then echo "webkit2_41 should be disabled"; exit 1; fi
           if [ -n "${{ matrix.expect_dedupe || '' }}" ]; then
-            count=$(grep -o "${{ matrix.expect_dedupe }}" <<< "$BO" | wc -l | tr -d ' ')
+            count=$(echo "$BO" | grep -o -- "${{ matrix.expect_dedupe }}" | wc -l | tr -d ' ')
             if [ "$count" -ne 1 ]; then echo "expected tag '${{ matrix.expect_dedupe }}' to appear once, got $count"; exit 1; fi
           fi
   
@@ -298,7 +298,7 @@ jobs:
       - name: Run root action with packaging
         uses: ./
         with:
-          build-name: wails
+          build-name: wails-smoke-${{ github.run_id }}
           build-platform: linux/amd64
           app-working-directory: tdd/wails2-root
           package: true
@@ -402,6 +402,7 @@ jobs:
           build-name: wails
           build-platform: linux/amd64
           app-working-directory: tdd/wails2-root
+          build: false
           package: false
           sign: false
 
@@ -423,9 +424,10 @@ jobs:
         id: wrap
         uses: ./actions/build/wails2
         with:
-          build-name: wails
+          build-name: wails-wrapper-${{ github.run_id }}
           build-platform: linux/amd64
           app-working-directory: tdd/wails2-root
+          build: false
           package: false
           sign: false
           nsis: false
