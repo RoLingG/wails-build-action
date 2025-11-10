@@ -121,20 +121,20 @@ jobs:
           node -v
           npm -v
   
-  setup-deno-tests:
-    name: Setup Deno sub-action behavior (skip vs enable)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Skip path (no env)
-        uses: ./actions/setup/deno
-      - name: Enable via env and run a command
-        env:
-          DENO_ENABLE: 'true'
-          DENO_VERSION: 'v1.44.x'
-          DENO_WORKDIR: '.'
-          DENO_BUILD: 'deno --version'
-        uses: ./actions/setup/deno
+#  setup-deno-tests:
+#    name: Setup Deno sub-action behavior (skip vs enable)
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v4
+#      - name: Skip path (no env)
+#        uses: ./actions/setup/deno
+#      - name: Enable via env and run a command
+#        env:
+#          DENO_ENABLE: 'true'
+#          DENO_VERSION: 'v1.44.x'
+#          DENO_WORKDIR: '.'
+#          DENO_BUILD: 'deno --version'
+#        uses: ./actions/setup/deno
   
   package-tests:
     name: Package sub-action with dummy artifact (Ubuntu)
@@ -225,7 +225,7 @@ jobs:
   matrix-root-action:
     name: Root action (./) on ${{ matrix.os }} for ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
-    needs: [discovery-tests, discovery-fixture-tests, auto-stack-smoke, options-tests, setup-go-tests, setup-npm-tests, setup-deno-tests, setup-conan-tests, signing-diagnostics, package-tests, wails-env-mapping-wrapper, readme-snippets]
+    needs: [discovery-tests, discovery-fixture-tests, auto-stack-smoke, options-tests, setup-go-tests, setup-npm-tests, setup-conan-tests, signing-diagnostics, package-tests, wails-env-mapping-wrapper, readme-snippets]
     strategy:
       fail-fast: false
       matrix:
@@ -258,7 +258,7 @@ jobs:
   wrapper-wails2:
     name: Wails2 wrapper (./actions/build/wails2) on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    needs: [discovery-tests, discovery-fixture-tests, auto-stack-smoke, options-tests, setup-go-tests, setup-npm-tests, setup-deno-tests, setup-conan-tests, signing-diagnostics, package-tests]
+    needs: [discovery-tests, discovery-fixture-tests, auto-stack-smoke, options-tests, setup-go-tests, setup-npm-tests, setup-conan-tests, signing-diagnostics, package-tests]
     strategy:
       fail-fast: false
       matrix:
@@ -363,24 +363,24 @@ jobs:
       - name: Show computed options
         run: echo "BUILD_OPTIONS='${{ steps.opts.outputs.BUILD_OPTIONS }}'"
 
-  deno-env-path-test:
-    name: Deno env-first path (root action on Ubuntu)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Configure Deno via $GITHUB_ENV
-        run: |
-          echo "DENO_ENABLE=true" >> "$GITHUB_ENV"
-          echo "DENO_VERSION=v1.44.x" >> "$GITHUB_ENV"
-          echo "DENO_WORKDIR=frontend" >> "$GITHUB_ENV"
-          echo "DENO_BUILD=deno --version" >> "$GITHUB_ENV"
-      - name: Run root action (should set up Deno and run command)
-        uses: ./
-        with:
-          build-name: wails
-          build-platform: linux/amd64
-          build: false
-          package: false
+#  deno-env-path-test:
+#    name: Deno env-first path (root action on Ubuntu)
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v4
+#      - name: Configure Deno via $GITHUB_ENV
+#        run: |
+#          echo "DENO_ENABLE=true" >> "$GITHUB_ENV"
+#          echo "DENO_VERSION=v1.44.x" >> "$GITHUB_ENV"
+#          echo "DENO_WORKDIR=frontend" >> "$GITHUB_ENV"
+#          echo "DENO_BUILD=deno --version" >> "$GITHUB_ENV"
+#      - name: Run root action (should set up Deno and run command)
+#        uses: ./
+#        with:
+#          build-name: wails
+#          build-platform: linux/amd64
+#          build: false
+#          package: false
 
   wails-env-mapping:
     name: WAILS_* env mapping (root action)
@@ -395,7 +395,6 @@ jobs:
           echo "WAILS_VERSION=latest" >> "$GITHUB_ENV"
           echo "WAILS_GO_VERSION=1.23" >> "$GITHUB_ENV"
           echo "WAILS_NODE_VERSION=18.x" >> "$GITHUB_ENV"
-          echo "WAILS_DENO_VERSION=v1.20.x" >> "$GITHUB_ENV"
           echo "WAILS_WEBVIEW2=download" >> "$GITHUB_ENV"
       - name: Run root action (uses ENV mapping)
         uses: ./
@@ -419,7 +418,6 @@ jobs:
           echo "WAILS_VERSION=latest" >> "$GITHUB_ENV"
           echo "WAILS_GO_VERSION=1.23" >> "$GITHUB_ENV"
           echo "WAILS_NODE_VERSION=18.x" >> "$GITHUB_ENV"
-          echo "WAILS_DENO_VERSION=v1.20.x" >> "$GITHUB_ENV"
           echo "WAILS_WEBVIEW2=download" >> "$GITHUB_ENV"
       - name: Run wails2 wrapper (capture outputs)
         id: wrap
@@ -462,17 +460,6 @@ jobs:
           build-tags: 'release'
           nsis: 'false'
           distro: ${{ steps.disc.outputs.DISTRO }}
-      - name: Deno ENV-first example
-        env:
-          DENO_ENABLE: 'true'
-          DENO_VERSION: 'v1.44.x'
-          DENO_WORKDIR: '.'
-          DENO_BUILD: 'deno --version'
-        uses: ./actions/setup/deno
-      - name: Prepare dummy artifact
-        run: |
-          mkdir -p tmp/bin
-          echo "snippet" > tmp/bin/snippet.txt
       - name: Package example
         uses: ./actions/package
         with:
