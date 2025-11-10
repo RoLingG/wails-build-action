@@ -114,6 +114,8 @@ runs:
     - name: Discovery
       id: discovery
       uses: actions/discovery
+      with:
+        working-directory: ${{ inputs.app-working-directory }}
 
     - name: Compute Build Options
       id: build_options
@@ -161,7 +163,7 @@ runs:
         npm install -g $npm_packages
 
     - name: Build Wails app
-      uses: actions/wails2/build
+      uses: actions/build/wails2/build
       with:
         build: ${{ inputs.build }}
         app-working-directory: ${{ inputs.app-working-directory }}

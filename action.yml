@@ -117,6 +117,8 @@ runs:
     - name: Discovery
       id: discovery
       uses: actions/discovery
+      with:
+        working-directory: ${{ inputs.app-working-directory }}
 
     - name: Compute Build Options
       id: build_options

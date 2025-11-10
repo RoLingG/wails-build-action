@@ -38,15 +38,15 @@ Stack-specific inputs (Wails flags, signing certs, etc.) are documented in the W
 ## Examples and stack-specific docs
 
 For Wails v2 end-to-end usage, examples, and advanced options, see:
-- Wails v2 wrapper: `actions/wails2/README.md`
-- Wails build sub-action: `actions/wails2/build/README.md`
+- Wails v2 wrapper: `actions/build/wails2/README.md`
+- Wails build sub-action: `actions/build/wails2/build/README.md`
 
 The root README focuses on multi-stack concepts. Stack-specific workflows are documented alongside each stack.
 
 ## macOS code signing docs moved
 
 The detailed macOS code signing and notarization guide (including `gon` JSON examples and `entitlements.plist`) now lives with the Wails v2 stack docs:
-- See `actions/wails2/README.md` → “macOS Code Signing (Wails v2)”
+- See `actions/build/wails2/README.md` → “macOS Code Signing (Wails v2)”
 
 
 ## Configure Deno via environment variables (optional)
@@ -114,7 +114,7 @@ This repo is modular. You can call the root action, the Wails v2 wrapper, or any
   - actions/setup/npm — Node.js and npm install/ci in your app working directory.
   - actions/setup/deno — optional; ENV-first Deno setup and command runner.
   - actions/setup/conan — placeholder for future C++ builds.
-- actions/wails2/build — runs `wails build` and fixes executable permissions per-OS.
+- actions/build/wails2/build — runs `wails build` and fixes executable permissions per-OS.
 - actions/sign — unified macOS and Windows signing; notarizes on tags.
 - actions/package — uploads artifacts; on tags, publishes a GitHub Release.
 
