@@ -114,33 +114,36 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Linux Discovery
-      id: linux_discovery
-      uses: actions/linux-discovery
+    - name: Discovery
+      id: discovery
+      uses: actions/discovery
 
     - name: Compute Build Options
       id: build_options
-      uses: actions/build-options
+      uses: actions/options
       with:
         build-obfuscate: ${{ inputs.build-obfuscate }}
         build-tags: ${{ inputs.build-tags }}
         nsis: ${{ inputs.nsis }}
-        distro: ${{ steps.linux_discovery.outputs.DISTRO }}
+        distro: ${{ steps.discovery.outputs.DISTRO }}
 
-    - name: Setup toolchains (Go, Deno, Wails)
+    - name: Setup toolchains (Go/Node/Deno/Wails)
       uses: actions/setup
       with:
         go-version: ${{ inputs.go-version }}
         build-cache: ${{ inputs.build-cache }}
         build-obfuscate: ${{ inputs.build-obfuscate }}
+        wails-version: ${{ inputs.wails-version }}
+        wails-dev-build: ${{ inputs.wails-dev-build }}
+        node-version: ${{ inputs.node-version }}
+        npm-working-directory: ${{ inputs.app-working-directory }}
+        npm-install: 'true'
         deno-build: ${{ inputs.deno-build }}
         deno-version: ${{ inputs.deno-version }}
         deno-working-directory: ${{ inputs.deno-working-directory }}
-        wails-version: ${{ inputs.wails-version }}
-        wails-dev-build: ${{ inputs.wails-dev-build }}
 
     - name: Build Wails app
-      uses: actions/build-wails
+      uses: actions/build/wails2/build
       with:
         build: ${{ inputs.build }}
         app-working-directory: ${{ inputs.app-working-directory }}
@@ -149,8 +152,8 @@ runs:
         wails-build-webview2: ${{ inputs.wails-build-webview2 }}
         build-options: ${{ steps.build_options.outputs.BUILD_OPTIONS }}
 
-    - name: Sign & notarize (macOS)
-      uses: actions/sign-macos
+    - name: Sign artifacts (OS-conditional)
+      uses: actions/sign
       with:
         sign: ${{ inputs.sign }}
         app-working-directory: ${{ inputs.app-working-directory }}
@@ -162,13 +165,6 @@ runs:
         sign-macos-installer-id: ${{ inputs.sign-macos-installer-id }}
         sign-macos-installer-cert: ${{ inputs.sign-macos-installer-cert }}
         sign-macos-installer-cert-password: ${{ inputs.sign-macos-installer-cert-password }}
-
-    - name: Sign (Windows)
-      uses: actions/sign-windows
-      with:
-        sign: ${{ inputs.sign }}
-        app-working-directory: ${{ inputs.app-working-directory }}
-        build-name: ${{ inputs.build-name }}
         sign-windows-cert: ${{ inputs.sign-windows-cert }}
         sign-windows-cert-password: ${{ inputs.sign-windows-cert-password }}
 
@@ -177,3 +173,9 @@ runs:
       with:
         package: ${{ inputs.package }}
         build-name: ${{ inputs.build-name }}
+        os: ${{ steps.discovery.outputs.OS }}
+        arch: ${{ steps.discovery.outputs.ARCH }}
+        tag: ${{ steps.discovery.outputs.TAG }}
+        is-tag: ${{ steps.discovery.outputs.IS_TAG }}
+        short-sha: ${{ steps.discovery.outputs.SHORT_SHA }}
+        ref: ${{ steps.discovery.outputs.REF }}

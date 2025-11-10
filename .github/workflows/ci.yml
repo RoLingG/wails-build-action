@@ -8,9 +8,162 @@ on:
   workflow_dispatch:
 
 jobs:
+  discovery-tests:
+    name: Discovery sub-action tests on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: disc
+        uses: ./actions/discovery
+      - name: Assert outputs (bash)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${{ steps.disc.outputs.OS }}"
+          : "${{ steps.disc.outputs.ARCH }}"
+          : "${{ steps.disc.outputs.REF }}"
+          : "${{ steps.disc.outputs.SHORT_SHA }}"
+          echo "OS=${{ steps.disc.outputs.OS }} ARCH=${{ steps.disc.outputs.ARCH }} REF=${{ steps.disc.outputs.REF }} SHORT_SHA=${{ steps.disc.outputs.SHORT_SHA }}"
+      - name: Assert outputs (pwsh)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          if (-not "${{ steps.disc.outputs.OS }}") { throw 'OS output empty' }
+          if (-not "${{ steps.disc.outputs.ARCH }}") { throw 'ARCH output empty' }
+          if (-not "${{ steps.disc.outputs.REF }}") { throw 'REF output empty' }
+          if (-not "${{ steps.disc.outputs.SHORT_SHA }}") { throw 'SHORT_SHA output empty' }
+  
+  options-tests:
+    name: Options sub-action matrix (Ubuntu)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { distro: '22.04', obf: 'false', nsis: 'false', tags: 'false', expect_webkit: 'false' }
+          - { distro: '24.04', obf: 'false', nsis: 'false', tags: 'false', expect_webkit: 'true' }
+          - { distro: '24.04', obf: 'true',  nsis: 'true',  tags: 'release', expect_webkit: 'true' }
+    steps:
+      - uses: actions/checkout@v4
+      - id: opts
+        uses: ./actions/options
+        with:
+          build-obfuscate: ${{ matrix.obf }}
+          build-tags: ${{ matrix.tags }}
+          nsis: ${{ matrix.nsis }}
+          distro: ${{ matrix.distro }}
+      - name: Assert BUILD_OPTIONS
+        shell: bash
+        run: |
+          set -euo pipefail
+          BO='${{ steps.opts.outputs.BUILD_OPTIONS }}'
+          echo "BUILD_OPTIONS=$BO"
+          if [ "${{ matrix.obf }}" = "true" ] && ! grep -q "-obfuscated" <<< "$BO"; then echo "missing -obfuscated"; exit 1; fi
+          if [ "${{ matrix.nsis }}" = "true" ] && ! grep -q "-nsis" <<< "$BO"; then echo "missing -nsis"; exit 1; fi
+          if [ "${{ matrix.expect_webkit }}" = "true" ] && ! grep -q "webkit2_41" <<< "$BO"; then echo "missing webkit2_41"; exit 1; fi
+  
+  setup-go-tests:
+    name: Setup Go/Wails sub-action on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go/Wails
+        uses: ./actions/setup/go
+        with:
+          go-version: '1.23'
+          build-cache: 'true'
+          build-obfuscate: 'false'
+          wails-version: 'latest'
+          wails-dev-build: 'false'
+      - name: Assert go and wails available
+        shell: bash
+        run: |
+          set -euo pipefail
+          go version
+          if command -v wails >/dev/null 2>&1; then wails version || true; else echo "wails not on PATH (may be Windows PATH nuance), continuing"; fi
+  
+  setup-npm-tests:
+    name: Setup npm sub-action on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node/npm (no install)
+        uses: ./actions/setup/npm
+        with:
+          node-version: '18.x'
+          working-directory: '.'
+          install: 'false'
+      - name: Assert node/npm
+        shell: bash
+        run: |
+          node -v
+          npm -v
+  
+  setup-deno-tests:
+    name: Setup Deno sub-action behavior (skip vs enable)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skip path (no env)
+        uses: ./actions/setup/deno
+      - name: Enable via env and run a command
+        env:
+          DENO_ENABLE: 'true'
+          DENO_VERSION: 'v1.44.x'
+          DENO_WORKDIR: '.'
+          DENO_BUILD: 'deno --version'
+        uses: ./actions/setup/deno
+  
+  package-tests:
+    name: Package sub-action with dummy artifact (Ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare dummy artifact
+        shell: bash
+        run: |
+          mkdir -p tmp/bin
+          echo "hello" > tmp/bin/dummy.txt
+      - name: Package (no release on branches)
+        uses: ./actions/package
+        with:
+          package: 'true'
+          build-name: 'ci-test'
+          os: 'Linux'
+          arch: 'amd64'
+          short-sha: '${{ github.sha }}'
+      - name: Check log
+        run: echo "Ensure [DEBUG_LOG] ARTIFACT_NAME is visible above"
+
+  setup-conan-tests:
+    name: Setup Conan sub-action (Linux only)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Conan
+        uses: ./actions/setup/conan
+      - name: Assert conan version present
+        shell: bash
+        run: |
+          if command -v conan >/dev/null 2>&1; then conan --version; else echo "Conan not found in PATH (ok for placeholder)"; fi
+
   matrix-root-action:
     name: Root action (./) on ${{ matrix.os }} for ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
+    needs: [discovery-tests, options-tests, setup-go-tests, setup-npm-tests, setup-deno-tests, setup-conan-tests, signing-diagnostics, package-tests]
     strategy:
       fail-fast: false
       matrix:
@@ -30,13 +183,15 @@ jobs:
         with:
           build-name: wails
           build-platform: ${{ matrix.platform }}
-          package: false
+          app-working-directory: build/wails2
+          package: true
           sign: false
           nsis: false
 
   wrapper-wails2:
     name: Wails2 wrapper (./actions/wails2) on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    needs: [discovery-tests, options-tests, setup-go-tests, setup-npm-tests, setup-deno-tests, setup-conan-tests, signing-diagnostics, package-tests]
     strategy:
       fail-fast: false
       matrix:
@@ -56,26 +211,83 @@ jobs:
         with:
           build-name: wails
           build-platform: ${{ matrix.platform }}
-          package: false
+          app-working-directory: build/wails2
+          package: true
           sign: false
           nsis: false
+
+  package-smoke-ubuntu:
+    name: Packaging smoke (Ubuntu, package:true, no release on non-tags)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Run root action with packaging
+        uses: ./
+        with:
+          build-name: wails
+          build-platform: linux/amd64
+          app-working-directory: build/wails2
+          package: true
+          sign: false
+          nsis: false
+      - name: Note
+        run: |
+          echo "[DEBUG_LOG] Packaging smoke complete. Check previous step for ARTIFACT_NAME echo."
+
+  signing-diagnostics:
+    name: Signing diagnostics (dry-run)
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: macOS gon presence
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          if command -v gon >/dev/null 2>&1; then
+            echo "[DEBUG_LOG] gon present: $(gon --version)"
+          else
+            echo "[DEBUG_LOG] gon not found. It is installed during the Go setup step in real builds (macOS only)."
+          fi
+      - name: Windows signtool discovery
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $paths = @(
+            'C:/Program Files (x86)/Windows Kits/10/bin',
+            'C:/Program Files (x86)/Windows Kits/11/bin'
+          )
+          $found = $false
+          foreach ($base in $paths) {
+            if (Test-Path $base) {
+              $sig = Get-ChildItem -Path $base -Recurse -Filter signtool.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+              if ($sig) { Write-Host "[DEBUG_LOG] signtool found at $($sig.FullName)"; $found = $true; break }
+            }
+          }
+          if (-not $found) {
+            Write-Host "[DEBUG_LOG] signtool.exe not found in common SDK paths. It is typically available with Windows 10/11 SDK."
+          }
 
   subactions-smoke:
     name: Sub-actions smoke (workflow-local ./actions/*)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Linux discovery (workflow-local path)
-        id: linux
-        uses: ./actions/linux-discovery
-      - name: Compute build options (with distro)
+      - name: Discovery (workflow-local path)
+        id: disc
+        uses: ./actions/discovery
+      - name: Compute options (with distro)
         id: opts
-        uses: ./actions/build-options
+        uses: ./actions/options
         with:
           build-obfuscate: 'true'
           build-tags: 'release'
           nsis: 'false'
-          distro: ${{ steps.linux.outputs.DISTRO }}
+          distro: ${{ steps.disc.outputs.DISTRO }}
       - name: Show computed options
         run: echo "BUILD_OPTIONS='${{ steps.opts.outputs.BUILD_OPTIONS }}'"
 

@@ -1,22 +1,31 @@
-# Setup Go, Deno, Wails (sub-action)
+# Setup toolchains (orchestrator)
 
 Purpose
-- Sets up toolchains needed for Wails builds:
-  - Go (with optional caching)
-  - Optional Garble (when obfuscating)
-  - Optional Deno (ENV-first configuration)
-  - Wails CLI
-  - Installs `gon` on macOS for signing
+- Orchestrates language/tool setup by delegating to sub-actions:
+  - Go (with optional module cache and Garble when obfuscating)
+  - npm/Node (optional install in your app working directory)
+  - Deno (optional; ENV-first configuration)
+  - Wails CLI (unless `wails-dev-build` is true)
+  - Installs `gon` on macOS for later signing
+  - Conan (placeholder for future C++ stack)
 
 Inputs
-- `go-version` (default `1.23`)
-- `build-cache` (default `true`) — enable Go modules cache
-- `build-obfuscate` (default `false`) — installs Garble when true
-- `deno-build` (default `''`) — build command; example: `deno task build`
-- `deno-version` (default `v1.20.x`)
-- `deno-working-directory` (default `.`)
-- `wails-version` (default `latest`)
-- `wails-dev-build` (default `false`) — when `true`, skips installing Go and Wails CLI
+- Go/Wails
+  - `go-version` (default `1.23`)
+  - `build-cache` (default `true`) — enable Go modules cache
+  - `build-obfuscate` (default `false`) — installs Garble when true
+  - `wails-version` (default `latest`)
+  - `wails-dev-build` (default `false`) — when `true`, skips installing Go and Wails CLI
+- npm/Node
+  - `node-version` (default `18.x`)
+  - `npm-working-directory` (default `.`)
+  - `npm-install` (default `true`) — run `npm ci || npm install`
+- Deno
+  - `deno-build` (default `''`) — build command; example: `deno task build`
+  - `deno-version` (default `v1.20.x`)
+  - `deno-working-directory` (default `.`)
+- Conan (placeholder)
+  - `conan-enable` (default `false`)
 
 Deno via environment variables (ENV-first)
 - Precedence: environment variables > inputs > defaults.
@@ -28,9 +37,8 @@ Deno via environment variables (ENV-first)
   - Pass-through: `DENO_AUTH_TOKEN`, `DENO_DIR`, proxies, etc.
 
 Behavior
-- Resolves Deno configuration and exposes internal outputs: `ENABLED`, `BUILD`, `VERSION`, `WORKDIR`.
-- Sets up Deno only when `ENABLED == '1'`.
-- Runs the Deno command when `BUILD` is not empty.
+- Calls sub-actions in order: `setup/go`, `setup/npm`, `setup/deno`, and optionally `setup/conan`.
+- Resolves Deno configuration and sets up Deno only when enabled; runs the command when provided.
 
 Usage
 ```yaml
@@ -41,6 +49,9 @@ Usage
     build-cache: 'true'
     build-obfuscate: 'false'
     wails-version: 'latest'
+    node-version: '18.x'
+    npm-working-directory: 'build/wails2'
+    npm-install: 'true'
   env:
     # Optional Deno via env
     DENO_ENABLE: 'true'

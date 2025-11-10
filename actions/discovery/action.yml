@@ -1,0 +1,113 @@
+name: "Discovery"
+description: "Detect OS/ARCH and (on Linux) distro; install required packages; expose repo/ref metadata for later steps"
+runs:
+  using: "composite"
+  steps:
+    - name: Linux discovery and deps
+      if: runner.os == 'Linux'
+      id: linux
+      shell: bash
+      run: |
+        set -euo pipefail
+        sudo apt-get -yq update
+        DISTRO=$(lsb_release -rs)
+        if [[ "$DISTRO" == "20.04" ]]; then
+          sudo apt-get -yq install libgtk-3-0 libwebkit2gtk-4.0-dev gcc-aarch64-linux-gnu
+        elif [[ "$DISTRO" == "22.04" ]]; then
+          sudo apt-get -yq install libgtk-3-0 libwebkit2gtk-4.0-dev gcc-aarch64-linux-gnu
+        elif [[ "$DISTRO" == "24.04" ]]; then
+          sudo apt-get -yq install libgtk-3-0 libwebkit2gtk-4.1-dev gcc-aarch64-linux-gnu
+        else
+          echo "Unsupported Linux distribution: $DISTRO"
+          exit 1
+        fi
+        echo "DISTRO=$DISTRO" >> "$GITHUB_OUTPUT"
+    - name: Common metadata (bash)
+      if: runner.os != 'Windows'
+      id: meta_bash
+      shell: bash
+      run: |
+        set -euo pipefail
+        OS="${{ runner.os }}"
+        ARCH="$(uname -m)"
+        REF="${{ github.ref }}"
+        SHA="${{ github.sha }}"
+        SHORT_SHA="${SHA::7}"
+        REPO="${{ github.repository }}"
+        OWNER="${{ github.repository_owner }}"
+        TAG=""
+        IS_TAG=0
+        if [[ "$REF" == refs/tags/* ]]; then
+          IS_TAG=1
+          TAG="${REF#refs/tags/}"
+        fi
+        echo "OS=$OS" >> "$GITHUB_OUTPUT"
+        echo "ARCH=$ARCH" >> "$GITHUB_OUTPUT"
+        echo "REF=$REF" >> "$GITHUB_OUTPUT"
+        echo "SHA=$SHA" >> "$GITHUB_OUTPUT"
+        echo "SHORT_SHA=$SHORT_SHA" >> "$GITHUB_OUTPUT"
+        echo "REPO=$REPO" >> "$GITHUB_OUTPUT"
+        echo "OWNER=$OWNER" >> "$GITHUB_OUTPUT"
+        echo "TAG=$TAG" >> "$GITHUB_OUTPUT"
+        echo "IS_TAG=$IS_TAG" >> "$GITHUB_OUTPUT"
+    - name: Common metadata (powershell)
+      if: runner.os == 'Windows'
+      id: meta_pwsh
+      shell: powershell
+      run: |
+        $OS = "${{ runner.os }}"
+        $archEnv = $Env:PROCESSOR_ARCHITECTURE
+        if ($archEnv -eq "AMD64") { $ARCH = "amd64" }
+        elseif ($archEnv -eq "ARM64") { $ARCH = "arm64" }
+        else { $ARCH = $archEnv }
+        $REF = "${{ github.ref }}"
+        $SHA = "${{ github.sha }}"
+        $SHORT_SHA = $SHA.Substring(0,7)
+        $REPO = "${{ github.repository }}"
+        $OWNER = "${{ github.repository_owner }}"
+        $TAG = ""
+        $IS_TAG = 0
+        if ($REF.StartsWith("refs/tags/")) {
+          $IS_TAG = 1
+          $TAG = $REF.Substring(10)
+        }
+        "OS=$OS" >> $Env:GITHUB_OUTPUT
+        "ARCH=$ARCH" >> $Env:GITHUB_OUTPUT
+        "REF=$REF" >> $Env:GITHUB_OUTPUT
+        "SHA=$SHA" >> $Env:GITHUB_OUTPUT
+        "SHORT_SHA=$SHORT_SHA" >> $Env:GITHUB_OUTPUT
+        "REPO=$REPO" >> $Env:GITHUB_OUTPUT
+        "OWNER=$OWNER" >> $Env:GITHUB_OUTPUT
+        "TAG=$TAG" >> $Env:GITHUB_OUTPUT
+        "IS_TAG=$IS_TAG" >> $Env:GITHUB_OUTPUT
+outputs:
+  OS:
+    description: "Runner OS (Linux/macOS/Windows)"
+    value: ${{ steps.meta_bash.outputs.OS || steps.meta_pwsh.outputs.OS }}
+  ARCH:
+    description: "CPU architecture (e.g., x86_64/amd64/arm64)"
+    value: ${{ steps.meta_bash.outputs.ARCH || steps.meta_pwsh.outputs.ARCH }}
+  DISTRO:
+    description: "Linux distro version when on Linux (e.g., 20.04/22.04/24.04); empty otherwise"
+    value: ${{ steps.linux.outputs.DISTRO }}
+  REF:
+    description: "The full Git ref"
+    value: ${{ steps.meta_bash.outputs.REF || steps.meta_pwsh.outputs.REF }}
+  TAG:
+    description: "Tag name when running on a tag ref; empty otherwise"
+    value: ${{ steps.meta_bash.outputs.TAG || steps.meta_pwsh.outputs.TAG }}
+  IS_TAG:
+    description: "1 if running on tag ref; 0 otherwise"
+    value: ${{ steps.meta_bash.outputs.IS_TAG || steps.meta_pwsh.outputs.IS_TAG }}
+  SHA:
+    description: "Full commit SHA"
+    value: ${{ steps.meta_bash.outputs.SHA || steps.meta_pwsh.outputs.SHA }}
+  SHORT_SHA:
+    description: "Short commit SHA (7 chars)"
+    value: ${{ steps.meta_bash.outputs.SHORT_SHA || steps.meta_pwsh.outputs.SHORT_SHA }}
+  REPO:
+    description: "owner/repo"
+    value: ${{ steps.meta_bash.outputs.REPO || steps.meta_pwsh.outputs.REPO }}
+  OWNER:
+    description: "Repository owner"
+    value: ${{ steps.meta_bash.outputs.OWNER || steps.meta_pwsh.outputs.OWNER }}
