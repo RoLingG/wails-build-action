@@ -80,3 +80,7 @@ runs:
         build-name: ${{ inputs.build-name }}
         build-platform: ${{ inputs.build-platform }}
         app-working-directory: ${{ inputs.app-working-directory }}
+outputs:
+  SELECTED_STACK:
+    description: "Stack selected by the orchestrator"
+    value: ${{ steps.sel.outputs.SELECTED_STACK }}

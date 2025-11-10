@@ -14,7 +14,13 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        sudo apt-get -yq update
+        export DEBIAN_FRONTEND=noninteractive
+        tries=0
+        until sudo apt-get -yq update; do
+          tries=$((tries+1))
+          if [ $tries -ge 3 ]; then echo "apt-get update failed after $tries attempts"; exit 1; fi
+          echo "Retrying apt-get update ($tries)"; sleep 2
+        done
         DISTRO=$(lsb_release -rs)
         if [[ "$DISTRO" == "20.04" ]]; then
           sudo apt-get -yq install libgtk-3-0 libwebkit2gtk-4.0-dev gcc-aarch64-linux-gnu

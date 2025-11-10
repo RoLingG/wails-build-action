@@ -50,6 +50,7 @@ runs:
         working-directory: ${{ inputs.app-working-directory }}
 
     - name: Delegate to directory orchestrator
+      id: dir_orch
       uses: actions/action.yml
       with:
         build: ${{ inputs.build }}
@@ -63,6 +64,10 @@ runs:
         STACK: ${{ inputs.STACK }}
         # Pass suggestion from discovery so orchestrator can skip re-scanning if it wants
         PRIMARY_STACK_SUGGESTION: ${{ steps.discovery.outputs.PRIMARY_STACK_SUGGESTION }}
+
+    - name: Debug selected stack
+      shell: bash
+      run: echo "[DEBUG_LOG] (root) Orchestrator selected stack=${{ steps.dir_orch.outputs.SELECTED_STACK }}"
 
     - name: Package & release
       uses: actions/package

@@ -6,7 +6,7 @@ inputs:
     required: false
     default: "false"
   build-tags:
-    description: "Build tags to pass to Go compiler. Must be quoted. Space or comma (but not both) separated"
+    description: "Build tags to pass to Go compiler. Space and/or comma separated."
     required: false
     default: "false"
   nsis:
@@ -17,6 +17,10 @@ inputs:
     description: "Linux distro version (e.g., 24.04). Optional; if 24.04 and no explicit webkit tag provided, add webkit2_41"
     required: false
     default: ""
+  disable-webkit-auto-tag:
+    description: "When true, do not auto-append webkit2_41 for Ubuntu 24.04"
+    required: false
+    default: "false"
 outputs:
   BUILD_OPTIONS:
     description: "Computed build options"
@@ -29,20 +33,40 @@ runs:
       shell: bash
       env:
         DISTRO: ${{ inputs.distro }}
+        DISABLE_WEBKIT: ${{ inputs.disable-webkit-auto-tag }}
       run: |
+        set -euo pipefail
         build_options=""
+        # Obfuscation
         if ${{ inputs.build-obfuscate == 'true' }}; then
           build_options+=" -obfuscated"
         fi
+        # Normalize tags: accept commas and/or spaces, trim, de-duplicate
+        norm_tags=""
         if [[ "${{ inputs.build-tags }}" != "false" ]]; then
-          tags_string="${{ inputs.build-tags }}"
-          if [[ "$DISTRO" == '24.04' ]]; then
-            tags_string+=" webkit2_41"
-          fi
-          build_options+=" -tags $tags_string"
-        elif [[ "${{ inputs.build-tags }}" == "false" && "$DISTRO" == '24.04' ]]; then
-          build_options+=" -tags webkit2_41"
+          raw="${{ inputs.build-tags }}"
+          raw="${raw//,/ }"
+          # collapse multiple spaces
+          raw=$(echo "$raw" | tr -s ' ')
+          declare -A seen=()
+          for t in $raw; do
+            if [[ -n "$t" && -z "${seen[$t]:-}" ]]; then
+              seen[$t]=1
+              norm_tags+=" $t"
+            fi
+          done
         fi
+        # Ubuntu 24.04 webkit auto-tag unless disabled or already present
+        if [[ "$DISTRO" == '24.04' && "${DISABLE_WEBKIT}" != 'true' ]]; then
+          case " $norm_tags " in
+            *" webkit2_41 "*) : ;; # already present
+            *) norm_tags+=" webkit2_41" ;;
+          esac
+        fi
+        if [[ -n "$norm_tags" ]]; then
+          build_options+=" -tags${norm_tags}"
+        fi
+        # NSIS
         if ${{ inputs.nsis == 'true' }}; then
           build_options+=" -nsis"
         fi

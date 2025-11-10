@@ -1,4 +1,8 @@
 # snider/build-action@v3
+
+[![CI](https://github.com/snider/wails-build-action/actions/workflows/ci.yml/badge.svg)](https://github.com/snider/wails-build-action/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
 General build action (multi-stack). Currently ships the Wails v2 pipeline. The action installs required toolchains (Go, npm, optional Deno), builds, and can optionally sign and package artifacts. It uses a modern, modular structure split into reusable sub-actions and an optional reusable workflow.
 
 By default, the action will build and upload the results to Git Hub; on a tagged build, it will also upload to the release.
@@ -22,7 +26,7 @@ By default, the action will build and upload the results to Git Hub; on a tagged
 ```
 ## Inputs (high level)
 
-This repository is multi-stack. The root action currently runs the Wails v2 pipeline by default. For full Wails-specific inputs and examples, see `actions/wails2/README.md`.
+This repository is multi-stack. The root action currently runs the Wails v2 pipeline by default. For full Wails-specific inputs and examples, see `actions/build/wails2/README.md`.
 
 Common high-level inputs on the root action include:
 - `build-name` — required; base name for outputs

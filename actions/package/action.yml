@@ -30,6 +30,10 @@ inputs:
     description: "Git ref (optional, from discovery)."
     required: false
     default: ""
+  include-meta:
+    description: "Include artifact_meta.json with discovery metadata in the uploaded artifact"
+    required: false
+    default: "true"
 runs:
   using: "composite"
   steps:
@@ -77,6 +81,63 @@ runs:
       shell: bash
       run: |
         echo "[DEBUG_LOG] ARTIFACT_NAME=${{ steps.meta.outputs.ARTIFACT_NAME }}"
+    - name: Write artifact_meta.json
+      if: inputs.package == 'true' && inputs.include-meta == 'true'
+      shell: bash
+      env:
+        IN_BUILD_NAME: ${{ inputs.build-name }}
+        IN_OS: ${{ inputs.os }}
+        IN_ARCH: ${{ inputs.arch }}
+        IN_REF: ${{ inputs.ref }}
+        IN_TAG: ${{ inputs.tag }}
+        IN_SHORT_SHA: ${{ inputs.short-sha }}
+      run: |
+        set -euo pipefail
+        build_name="$IN_BUILD_NAME"
+        os_val="$IN_OS"
+        arch_val="$IN_ARCH"
+        ref_val="$IN_REF"
+        tag_val="$IN_TAG"
+        short_sha="$IN_SHORT_SHA"
+        # Resolve OS from runner if not provided
+        if [ -z "$os_val" ]; then os_val="${RUNNER_OS:-}"; fi
+        # Resolve ARCH if not provided (best-effort)
+        if [ -z "$arch_val" ]; then
+          if command -v uname >/dev/null 2>&1; then
+            m=$(uname -m || echo unknown)
+            case "$m" in
+              x86_64|amd64) arch_val="amd64";;
+              aarch64|arm64) arch_val="arm64";;
+              armv7l) arch_val="armv7";;
+              *) arch_val="$m";;
+            esac
+          else
+            arch_val="${PROCESSOR_ARCHITECTURE:-}"
+          fi
+        fi
+        # Resolve REF/BRANCH
+        if [ -z "$ref_val" ]; then ref_val="${GITHUB_REF:-}"; fi
+        branch_val=""
+        case "$ref_val" in
+          refs/heads/*) branch_val="${ref_val#refs/heads/}" ;;
+        esac
+        # Resolve SHORT SHA
+        if [ -z "$short_sha" ]; then
+          ghsha="${GITHUB_SHA:-}"
+          short_sha="${ghsha:0:7}"
+        fi
+        cat > artifact_meta.json <<JSON
+        {
+          "build_name": "${build_name}",
+          "os": "${os_val}",
+          "arch": "${arch_val}",
+          "ref": "${ref_val}",
+          "branch": "${branch_val}",
+          "tag": "${tag_val}",
+          "short_sha": "${short_sha}"
+        }
+        JSON
+        echo "[DEBUG_LOG] Wrote artifact_meta.json"
     - uses: actions/upload-artifact@v4
       if: inputs.package == 'true'
       with:
@@ -84,6 +145,7 @@ runs:
         path: |
           */bin/
           *\bin\*
+          artifact_meta.json
     - name: Release
       uses: softprops/action-gh-release@v1
       if: inputs.package == 'true' && startsWith(github.ref, 'refs/tags/')
@@ -91,3 +153,4 @@ runs:
         name: ${{ steps.meta.outputs.ARTIFACT_NAME }}
         files: |
           */bin/*
+          artifact_meta.json

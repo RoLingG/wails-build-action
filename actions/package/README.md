@@ -7,11 +7,13 @@ What it does
 - Uses `actions/upload-artifact@v4` to upload files from `*/bin/` (Linux/macOS) and `*\\bin\\*` (Windows).
 - If the workflow is running on a tag (`refs/tags/*`) and packaging is enabled, it attaches all `*/bin/*` files to a GitHub Release using `softprops/action-gh-release@v1`.
 - Composes a descriptive artifact name using discovery metadata: `<build-name>_<OS>_<ARCH>_<TAG|SHORTSHA>`.
+- Optionally writes a small `artifact_meta.json` (enabled by default) alongside the uploaded artifacts with discovery info for downstream automation.
 
 Inputs
 - `package` (default `true`) — enable/disable uploads and release publishing.
 - `build-name` (required) — base name used in the artifact label.
 - Optional (auto-filled when using the root action/wrapper): `os`, `arch`, `tag`, `short-sha`, `ref`.
+- `include-meta` (default `true`) — when `true`, writes `artifact_meta.json` containing `{ build_name, os, arch, ref, branch, tag, short_sha }` and includes it in both artifact uploads and releases.
 
 Usage
 ```yaml
