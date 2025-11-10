@@ -51,7 +51,7 @@ runs:
 
     - name: Delegate to directory orchestrator
       id: dir_orch
-      uses: ./actions/action.yml
+      uses: ./actions
       with:
         build: ${{ inputs.build }}
         sign: ${{ inputs.sign }}
