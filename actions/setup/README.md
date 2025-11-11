@@ -43,7 +43,7 @@ Behavior
 Usage
 ```yaml
 - name: Setup toolchains
-  uses: snider/build-action/actions/setup@v3
+  uses: snider/build/actions/setup@v3
   with:
     go-version: '1.23'
     build-cache: 'true'

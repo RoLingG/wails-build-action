@@ -12,7 +12,7 @@ Inputs
 Usage
 ```yaml
 - name: Setup Node/npm
-  uses: snider/build-action/actions/setup/npm@v3
+  uses: snider/build/actions/setup/npm@v3
   with:
     node-version: '20.x'
     working-directory: 'build/wails2' # or '.'

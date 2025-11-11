@@ -14,7 +14,7 @@ Inputs
 Usage
 ```yaml
 - name: Build Wails app
-  uses: snider/build-action/actions/build/wails2/build@v3
+  uses: snider/build/actions/build/wails2/build@v3
   with:
     build: 'true'
     app-working-directory: 'build/wails2'  # or your project dir

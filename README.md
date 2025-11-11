@@ -1,4 +1,4 @@
-# snider/build-action@v3
+# snider/build@v3
 
 [![CI](https://github.com/snider/wails-build-action/actions/workflows/ci.yml/badge.svg)](https://github.com/snider/wails-build-action/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-EUPL-green.svg)](LICENSE)
@@ -16,7 +16,7 @@ you should write out an action that cherry-picks the parts you need; the auto-de
 
 # Default build
 ```yaml
-- uses: snider/build-action@v3
+- uses: snider/build@v3
   with:
     build-name: wailsApp
     build-platform: linux/amd64
@@ -25,7 +25,7 @@ you should write out an action that cherry-picks the parts you need; the auto-de
 ## Build with No uploading
 
 ```yaml
-- uses: snider/build-action@v3
+- uses: snider/build@v3
   with:
     build-name: wailsApp
     build-platform: linux/amd64
@@ -87,7 +87,7 @@ jobs:
       DENO_BUILD: 'deno task build'
     steps:
       - uses: actions/checkout@v4
-      - uses: snider/build-action@v3
+      - uses: snider/build@v3
         with:
           build-name: wailsApp
           build-platform: linux/amd64
@@ -101,7 +101,7 @@ Using `$GITHUB_ENV` in a prior step:
     echo "DENO_VERSION=v1.44.x" >> "$GITHUB_ENV"
     echo "DENO_WORKDIR=frontend" >> "$GITHUB_ENV"
     echo "DENO_BUILD=deno task build" >> "$GITHUB_ENV"
-- uses: snider/build-action@v3
+- uses: snider/build@v3
   with:
     build-name: wailsApp
     build-platform: linux/amd64
@@ -132,7 +132,7 @@ This repo is modular. You can call the root action, the Wails v2 wrapper, or any
 ## Stacks
 
 - Available:
-  - wails2 — `uses: snider/build-action/actions/build/wails2@v3` (or just call the root action)
+  - wails2 — `uses: snider/build/actions/build/wails2@v3` (or just call the root action)
 - Coming soon:
   - wails3 — once upstream stabilizes
   - cpp — via `setup/conan` and dedicated build/sign/pack steps
@@ -143,7 +143,7 @@ The `actions/setup` sub-action is a thin orchestrator that runs Go → npm → D
 
 ## Orchestrator controls (root action)
 
-The root action can auto-detect your stack and auto-enable setup steps. This makes `snider/build-action@v3` “just work” for common layouts, while still allowing full control.
+The root action can auto-detect your stack and auto-enable setup steps. This makes `snider/build@v3` “just work” for common layouts, while still allowing full control.
 
 - Inputs (root action):
   - `AUTO_STACK` (default `true`) — auto-select a stack based on `actions/discovery` outputs.

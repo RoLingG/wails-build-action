@@ -40,7 +40,7 @@ Usage
 ```yaml
 - name: Discovery
   id: disc
-  uses: snider/build-action/actions/discovery@v3
+  uses: snider/build/actions/discovery@v3
   with:
     working-directory: build/wails2 # or your app dir
 # Later examples:
