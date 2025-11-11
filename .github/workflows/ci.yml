@@ -398,6 +398,7 @@ jobs:
 
   wails-env-mapping:
     name: WAILS_* env mapping (root action)
+    needs: [discovery-tests,discovery-fixture-tests]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -422,6 +423,7 @@ jobs:
 
   wails-env-mapping-wrapper:
     name: WAILS_* env mapping (wrapper outputs)
+    needs: [discovery-tests,discovery-fixture-tests]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -460,6 +462,7 @@ jobs:
 
   readme-snippets:
     name: README snippets validation (non-signing, non-release)
+    needs: [package-tests]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
