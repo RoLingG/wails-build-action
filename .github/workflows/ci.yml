@@ -112,7 +112,7 @@ jobs:
   
 
   setup-go-tests:
-    needs: options-tests
+    needs: [options-tests, wails-env-mapping, wails-env-mapping-wrapper]
     name: Setup Go/Wails sub-action on ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -139,7 +139,7 @@ jobs:
 
   setup-npm-tests:
     name: Setup npm sub-action on ${{ matrix.os }}
-    needs: options-tests
+    needs: [options-tests, wails-env-mapping, wails-env-mapping-wrapper]
     strategy:
       fail-fast: false
       matrix:
@@ -160,7 +160,7 @@ jobs:
           npm -v
 
   setup-conan-tests:
-    needs: options-tests
+    needs: [options-tests, wails-env-mapping, wails-env-mapping-wrapper]
     name: Setup Conan sub-action (Linux only)
     runs-on: ubuntu-latest
     steps:
