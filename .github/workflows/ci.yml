@@ -246,7 +246,7 @@ jobs:
       - name: Run root action locally
         uses: ./
         with:
-          build-name: wails
+          build-name: wails-root-action-${{ matrix.os }}
           build-platform: ${{ matrix.platform }}
           app-working-directory: tdd/wails2-root
           build: false
@@ -272,7 +272,7 @@ jobs:
       - name: Run wails2 wrapper locally
         uses: ./actions/build/wails2
         with:
-          build-name: wails
+          build-name: wails-wrapper-${{ matrix.os }}
           build-platform: ${{ matrix.platform }}
           app-working-directory: tdd/wails2-root
           package: true
