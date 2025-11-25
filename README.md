@@ -3,6 +3,9 @@
 [![CI](https://github.com/snider/wails-build-action/actions/workflows/ci.yml/badge.svg)](https://github.com/snider/wails-build-action/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-EUPL-green.svg)](LICENSE)
 
+> [!NOTE]
+> For comprehensive documentation, please visit the [docs](docs/) directory.
+
 
 > I help on lots of open source projects, im tired of doing the same thing over and over again.\
 > so, I'm going to put them all together in one place.\
