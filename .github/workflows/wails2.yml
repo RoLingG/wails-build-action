@@ -105,7 +105,7 @@ jobs:
           wails-build-webview2: ${{ inputs.wails-build-webview2 }}
           go-version: ${{ inputs.go-version }}
           deno-build: ${{ inputs.deno-build }}
-          app-working-directory: tdd/wails2-root
+          app-working-directory: ${{ inputs.app-working-directory }}
           deno-working-directory: ${{ inputs.deno-working-directory }}
           deno-version: ${{ inputs.deno-version }}
           sign-macos-app-id: ${{ inputs.sign-macos-app-id }}
