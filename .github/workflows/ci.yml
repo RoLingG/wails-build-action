@@ -313,7 +313,6 @@ jobs:
           build: false
           package: false
           sign: false
-          nsis: false
       - name: Assert orchestrator selected wails2
         shell: bash
         run: |
