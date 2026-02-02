@@ -490,3 +490,21 @@ jobs:
           include-meta: 'true'
       - name: Note
         run: echo "[DEBUG_LOG] README snippets validated"
+
+  build-wails2:
+    name: Build Wails2 project (actual compilation)
+    needs: [setup-go-tests, setup-npm-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build with action
+        uses: ./
+        with:
+          build-name: hello-wails
+          build-platform: linux/arm64
+          app-working-directory: tdd/wails2-root
+          build: true
+          package: false
+          sign: false
+      - name: Verify binary
+        run: test -f tdd/wails2-root/build/bin/hello-wails
