@@ -4,6 +4,9 @@ branding:
   icon: 'box'
   color: 'purple'
 inputs:
+  disable-release: 
+    description: 'Disable GitHub Release even on tag' 
+    default: "false"
   build:
     description: "Platform to build for"
     required: false
