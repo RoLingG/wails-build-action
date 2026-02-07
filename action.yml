@@ -283,7 +283,7 @@ runs:
           *\bin\*
     - name: Release
       uses: softprops/action-gh-release@v1
-      if: inputs.package == 'true' && startsWith(github.ref, 'refs/tags/')
+      if: inputs.package == 'true' && inputs.disable-release != 'true' && startsWith(github.ref, 'refs/tags/')
       with:
         files: |
           */bin/*
